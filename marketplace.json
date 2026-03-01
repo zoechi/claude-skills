@@ -1,0 +1,11 @@
+{
+  "name": "claude-skills",
+  "url": "https://gitlab.com/zoechi/claude-skills",
+  "plugins": [
+    {
+      "name": "claude-skills",
+      "version": "1.0.0",
+      "source": "."
+    }
+  ]
+}
