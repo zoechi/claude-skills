@@ -207,6 +207,24 @@ jj git fetch                 # fetch from remote
 jj git push -b <bookmark>    # push bookmark to remote
 ```
 
+## Git Tool Integration (glab, gh, etc.)
+
+Tools like `glab` and `gh` require a `.git` directory. In a jj workspace the `.git`
+dir lives in the colocated repo root, not the workspace directory. Resolve it dynamically:
+
+```bash
+# Resolve the colocated git root (works in both regular jj repos and workspaces)
+if [ -f .jj/repo ]; then
+  GIT_ROOT=$(cd "$(cat .jj/repo)" && jj root)
+else
+  GIT_ROOT=$(jj root)
+fi
+
+# Then prefix git-aware tools with GIT_DIR:
+GIT_DIR="$GIT_ROOT/.git" glab mr create ...
+GIT_DIR="$GIT_ROOT/.git" gh pr create ...
+```
+
 ## Quick Reference
 
 | Action | Command |
