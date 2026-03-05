@@ -245,6 +245,35 @@ GIT_DIR="$GIT_ROOT/.git" gh pr create ...
 | Move bookmark | `jj bookmark move <name> --to @` |
 | Push bookmark | `jj git push -b <name>` |
 
+## Rebasing onto develop (or any trunk branch)
+
+**Always fetch upstream first**, then rebase, then create a new empty change:
+
+```bash
+jj git fetch && jj rebase -b @ -d develop@origin && jj new
+```
+
+- Use `develop@origin` (not `develop`) to ensure you rebase onto the **upstream** tip, not a potentially stale local bookmark
+- Always run `jj new` afterwards to leave the working copy on a fresh empty change
+
+## Never modify a pushed change
+
+Once a change has been pushed to the remote, **never amend or modify it**. Always start a new change instead.
+
+After any of these operations, immediately run `jj new`:
+- After `jj git push` — the pushed change is now shared
+- After `jj rebase` onto upstream — the rebased changes are anchored
+
+**Why**: Modifying pushed changes rewrites history and forces others (and your own remote tracking) into conflicts.
+
+```bash
+# Wrong — modifying a pushed change
+jj describe  # on a change that was already pushed
+
+# Correct — start fresh
+jj new       # then describe/code on the new empty change
+```
+
 ## Best Practices
 
 1. **Describe first**: Set the commit message before coding
@@ -252,3 +281,6 @@ GIT_DIR="$GIT_ROOT/.git" gh pr create ...
 3. **Use change IDs**: They're stable across rewrites
 4. **Refine commits**: Leverage mutability for clean history
 5. **Move bookmarks manually** before pushing — they don't auto-advance
+6. **Rebase onto upstream**: Always fetch before rebasing onto trunk — use `develop@origin` not `develop`
+7. **New change after rebase**: Always run `jj new` after rebasing to leave a clean empty working copy
+8. **Never modify pushed changes**: Once pushed to remote, a change is immutable — always `jj new` instead
