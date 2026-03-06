@@ -6,6 +6,7 @@ Shared Claude Code skills plugin for jj, Terraform, and Vault workflows.
 
 | Skill | Description |
 |-------|-------------|
+| `gitlab-jj-merge-flow` | Merge a jj feature branch through develop into master on GitLab, then sync all local bookmarks |
 | `jj-compat` | Jujutsu (jj) VCS — git→jj translation, agent-safe workflow |
 | `tf-import` | Generate Terraform import blocks with correct provider ID formats |
 | `vault-policy-check` | Validate Vault policies against common glob pattern issues |
@@ -25,6 +26,7 @@ claude plugin install https://gitlab.com/zoechi/claude-skills --scope project
 
 After installation, skills are available with the `claude-skills:` prefix:
 
+- `/claude-skills:gitlab-jj-merge-flow`
 - `/claude-skills:jj-compat`
 - `/claude-skills:tf-import`
 - `/claude-skills:vault-policy-check`
