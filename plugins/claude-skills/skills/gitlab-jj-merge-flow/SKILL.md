@@ -19,11 +19,11 @@ jj status
 
 Confirm:
 - The current bookmark (`@`) is the feature branch to merge
-- The working copy is clean (no uncommitted changes, or they are intentional)
 - The parent commit is on `develop`
 
-If the working copy has changes, ask the user whether to include them or create a
-new change first.
+If the working copy has uncommitted changes, note them to the user — jj will
+auto-snapshot them into `@` when the push runs, so they will be included in the
+MR. Proceed without pausing unless the user asks to restructure first.
 
 ## Step 2 — Push feature branch
 
