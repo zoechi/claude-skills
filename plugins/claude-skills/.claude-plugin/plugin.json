@@ -1,7 +1,7 @@
 {
   "name": "claude-skills",
   "description": "Shared Claude Code skills for jj, Terraform, and Vault workflows",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": { "name": "zoechi" },
   "repository": "https://gitlab.com/zoechi/claude-skills"
 }
