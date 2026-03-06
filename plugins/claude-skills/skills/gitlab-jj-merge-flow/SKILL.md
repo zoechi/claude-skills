@@ -25,6 +25,33 @@ If the working copy has uncommitted changes, note them to the user — jj will
 auto-snapshot them into `@` when the push runs, so they will be included in the
 MR. Proceed without pausing unless the user asks to restructure first.
 
+## Step 1b — Verify based on latest upstream develop
+
+Check whether `@` descends from the latest upstream develop:
+
+```bash
+jj log -r 'remote_bookmarks(exact:"develop") & ancestors(@)'
+```
+
+- If the command **returns a commit**: `@` is based on upstream develop — continue.
+- If the command **returns nothing**: `@` is NOT based on upstream develop.
+
+When `@` is not based on upstream develop, ask the user:
+
+> "The current change is not based on the latest upstream develop. Do you want me to
+> rebase onto it? (If no, the workflow will stop here.)"
+
+If **yes**: rebase, then resolve any conflicted bookmarks:
+
+```bash
+jj rebase -d 'remote_bookmarks(exact:"develop")'
+# If the feature bookmark now shows as conflicted:
+jj bookmark set <feature-bookmark> -r @
+```
+
+If **no**: stop the workflow and inform the user that the feature branch must be
+based on upstream develop before the merge flow can proceed.
+
 ## Step 2 — Push feature branch
 
 ```bash
