@@ -180,6 +180,27 @@ jj workspace forget NAME                 # remove workspace (careful with defaul
 
 Each workspace has its own `@` commit. `name@` refers to workspace `name`'s WC commit.
 
+## Automatic Working Copy Advance
+
+When `@` becomes **immutable** (e.g. after a remote merge makes the commit part of
+the permanent history), jj automatically creates a new empty commit on top and
+moves `@` to it. You will see:
+
+```
+Warning: The working-copy commit in workspace 'NAME' became immutable, so a new
+commit has been created on top of it.
+```
+
+This is expected — simply rebase the new empty `@` to wherever you want to continue
+working.
+
+## Remote Bookmark Revsets After Branch Deletion
+
+`remote_bookmarks(exact:"name")` returns **empty** if the remote branch has been
+deleted (e.g. GitLab deletes source branches after MR merge). If a rebase command
+targeting a remote bookmark fails with "No revisions found", check whether the
+remote branch still exists and fall back to a local bookmark (e.g. `master`) if needed.
+
 ## Handling Conflicts
 
 jj allows committing conflicts — resolve them later by editing files directly to remove conflict markers. Do not use `jj resolve` (interactive, will hang in agent environments).
@@ -205,6 +226,35 @@ jj git clone <url>           # clone a git repo
 jj git init --colocate       # initialize jj in existing git repo
 jj git fetch                 # fetch from remote
 jj git push -b <bookmark>    # push bookmark to remote
+```
+
+**Note**: `jj git push` already behaves like `git push --force-with-lease` by default —
+it updates the remote only if the remote's current state matches what jj last fetched.
+Neither `--force` nor `--force-with-lease` are valid flags in jj. If a push is rejected
+due to divergence, run `jj git fetch` first and resolve any bookmark conflicts.
+
+## GitLab MR: develop → master — NEVER Delete the develop Branch
+
+**CRITICAL**: When creating an MR from `develop` into `master`, the `develop` branch
+**must not** be deleted after merge. `develop` is a long-lived integration branch — it
+is not a feature branch.
+
+When using `glab mr create`, ensure the MR does **not** have "Delete source branch"
+enabled. If the GitLab project default deletes source branches, explicitly disable it:
+
+```bash
+glab mr create \
+  --source-branch develop \
+  --target-branch master \
+  --remove-source-branch=false \
+  ...
+```
+
+If the branch was accidentally deleted, recreate it from master:
+
+```bash
+jj bookmark create develop -r master
+jj git push --bookmark develop
 ```
 
 ## Git Tool Integration (glab, gh, etc.)
