@@ -1,0 +1,100 @@
+---
+name: mrcreate
+description: "Create a GitLab MR for the current jj change targeting develop. Use when the user asks to create an MR, open a merge request, or push a feature branch."
+disable-model-invocation: true
+allowed-tools: Bash(jj *), Bash(glab *), Edit
+---
+
+# Create GitLab MR for Current jj Change
+
+Creates and pushes the current change as a GitLab MR targeting `develop`.
+
+## Step 1 — Verify current change has a description
+
+```bash
+jj log -r @ --no-graph -T 'description'
+```
+
+If the output is empty, **stop** and ask the user to describe the change:
+
+> "The current change has no description. Please describe it first with:
+> `jj describe -m \"your description here\"`"
+
+## Step 2 — Find or create a bookmark on @
+
+```bash
+jj log -r @ --no-graph -T 'bookmarks'
+```
+
+If no bookmark is shown, ask the user for a bookmark name, then:
+
+```bash
+jj bookmark create <name> -r @
+```
+
+## Step 3 — Push the bookmark
+
+```bash
+jj git push --bookmark <name>
+```
+
+If the push fails because the remote has diverged (ahead/behind), push with force:
+
+```bash
+jj git push --bookmark <name> --force-with-lease
+```
+
+## Step 4 — Find the git store root
+
+jj workspaces can be linked worktrees where `.jj/repo` is a pointer file, not a
+directory. `glab` needs real git context:
+
+```bash
+# If .jj/repo is a plain file (linked workspace):
+GIT_ROOT=$(cat .jj/repo)
+# If .jj/repo is a directory (default workspace):
+GIT_ROOT=$(jj root)
+```
+
+Check: `[ -f .jj/repo ] && GIT_ROOT=$(cat .jj/repo) || GIT_ROOT=$(jj root)`
+
+## Step 5 — Check for an existing MR
+
+```bash
+GIT_DIR="$GIT_ROOT/.git" glab mr list --source-branch <name>
+```
+
+If an MR already exists, print the URL and stop — no duplicate needed.
+
+## Step 6 — Create the MR
+
+Derive a title from the change description if not provided:
+
+```bash
+GIT_DIR="$GIT_ROOT/.git" glab mr create \
+  --source-branch <name> \
+  --target-branch develop \
+  --title "<description from jj log>" \
+  --description "<more detail if available>" \
+  --no-editor
+```
+
+Print the MR URL to the user.
+
+## Notes
+
+- Do **not** use `--remove-source-branch` / `-d` unless the user explicitly asks; some
+  workflows keep the branch for tracking.
+- `--delete-source-branch` does not exist in all glab versions; use `-d` or
+  `--remove-source-branch`.
+- If the push fails with "no bookmark to push", ensure the bookmark was created in Step 2.
+
+## Self-update
+
+If you encounter an edge case, failure, or workaround not documented above, append a
+bullet to the relevant Notes section of the **source** file using `Edit` before finishing:
+
+`~/source/claude-skills/plugins/claude-skills/skills/mrcreate/SKILL.md`
+
+Do **not** edit the installed copy under `~/.claude/`. Keep additions factual: what
+failed, what fixed it. Do not restructure existing content.
