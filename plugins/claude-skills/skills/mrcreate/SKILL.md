@@ -32,7 +32,20 @@ If no bookmark is shown, ask the user for a bookmark name, then:
 jj bookmark create <name> -r @
 ```
 
-## Step 3 — Push the bookmark
+## Step 3 — Sync with remote before pushing
+
+Fetch remote state and rebase `@` onto the latest develop **before** pushing. This
+prevents `jj git push` from doing an implicit fetch+rebase during the push, which can
+leave files stranded in `@` instead of the pushed commit.
+
+```bash
+jj git fetch
+jj rebase -r @ -d develop@origin
+```
+
+If `@` is already up to date the rebase is a no-op.
+
+## Step 4 — Push the bookmark
 
 ```bash
 jj git push --bookmark <name>
@@ -44,7 +57,22 @@ If the push fails because the remote has diverged (ahead/behind), push with forc
 jj git push --bookmark <name> --force-with-lease
 ```
 
-## Step 4 — Find the git store root
+After pushing, verify that the bookmark and `@` still point to the same commit (a
+divergence here means the push triggered an unexpected rebase):
+
+```bash
+jj log -r "<name>" -r @ --no-graph -T 'change_id ++ " " ++ commit_id ++ "\n"'
+# Both lines should have the same change_id and commit_id
+```
+
+If they differ, force-push the updated `@` to the bookmark:
+
+```bash
+jj bookmark set <name> -r @
+jj git push --bookmark <name> --force-with-lease
+```
+
+## Step 5 — Find the git store root
 
 jj workspaces can be linked worktrees where `.jj/repo` is a pointer file, not a
 directory. `glab` needs real git context:
@@ -58,7 +86,7 @@ GIT_ROOT=$(jj root)
 
 Check: `[ -f .jj/repo ] && GIT_ROOT=$(cat .jj/repo) || GIT_ROOT=$(jj root)`
 
-## Step 5 — Check for an existing MR
+## Step 6 — Check for an existing MR
 
 ```bash
 GIT_DIR="$GIT_ROOT/.git" glab mr list --source-branch <name>
@@ -66,7 +94,7 @@ GIT_DIR="$GIT_ROOT/.git" glab mr list --source-branch <name>
 
 If an MR already exists, print the URL and stop — no duplicate needed.
 
-## Step 6 — Create the MR
+## Step 7 — Create the MR
 
 Derive a title from the change description if not provided:
 
