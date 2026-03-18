@@ -295,6 +295,49 @@ GIT_DIR="$GIT_ROOT/.git" gh pr create ...
 | Move bookmark | `jj bookmark move <name> --to @` |
 | Push bookmark | `jj git push -b <name>` |
 
+## Claude Code Hook: Auto `jj new` on Prompt Submit
+
+When `@` sits directly on a remote tracking bookmark (e.g. after `jj git fetch` moves
+`main@origin` to your working copy), any file edit would modify that remote state without
+a proper local change. This hook detects that condition at the start of each user task
+and automatically runs `jj new` so edits always land on a fresh local change.
+
+**Why `UserPromptSubmit` (not `PreToolUse`)**: `jj log` snapshots the working copy if
+there are uncommitted changes, creating one op log entry per invocation. Using
+`PreToolUse` on file-edit tools would create one op log entry per file edited.
+`UserPromptSubmit` fires once per user message, giving one op log boundary per task.
+
+### Setup
+
+1. Copy the hook script from this plugin to your project:
+
+```bash
+cp "${CLAUDE_PLUGIN_ROOT}/hooks/ensure-jj-change.sh" .claude/hooks/
+chmod +x .claude/hooks/ensure-jj-change.sh
+```
+
+2. Add to your project's `.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/ensure-jj-change.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+The hook is a no-op when `@` is already on a local change — it exits silently after
+one fast `jj log` check.
+
 ## Best Practices
 
 1. **Describe first**: Set the commit message before coding
