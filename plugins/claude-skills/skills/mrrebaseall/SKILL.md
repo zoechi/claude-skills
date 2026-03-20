@@ -29,7 +29,7 @@ Note each workspace name and its current change ID.
 ## Step 3 — Rebase default workspace
 
 ```bash
-jj rebase -r 'default@' -d 'remote_bookmarks(exact:"develop")'
+jj rebase -r 'default@' -d 'develop@origin'
 ```
 
 If `default@` is already a descendant of `develop@origin`, this is a no-op.
@@ -39,7 +39,7 @@ If `default@` is already a descendant of `develop@origin`, this is a no-op.
 For each non-default workspace listed in Step 2:
 
 ```bash
-jj rebase -r '<workspace-name>@' -d 'remote_bookmarks(exact:"develop")'
+jj rebase -r '<workspace-name>@' -d 'develop@origin'
 ```
 
 Replace `<workspace-name>` with the actual name (e.g. `nix-config_claude`,
@@ -57,13 +57,14 @@ Confirm each workspace's change is now a child of `develop@origin`.
 
 ## Notes
 
-- Use `remote_bookmarks(exact:"develop")` not bare `develop` — the local develop bookmark
-  may lag behind origin after merges.
+- Use `develop@origin` not bare `develop` or `remote_bookmarks(exact:"develop")` — the local
+  develop bookmark may lag behind origin after merges, and `remote_bookmarks(exact:"develop")`
+  fails when multiple remotes track develop (e.g. origin + a second remote).
 - Workspaces with conflicts after rebase will show `(conflict)` in `jj log`. Resolve them
   individually using `/mrmerge` or `jj resolve`.
 - You cannot rebase the *current* workspace's `@` with `-r '<name>@'` syntax from within
-  that workspace; use plain `jj rebase -r @ -d 'remote_bookmarks(exact:"develop")'` when
-  targeting the active workspace.
+  that workspace; use plain `jj rebase -r @ -d 'develop@origin'` when targeting the active
+  workspace.
 - If a workspace has an undescribed commit (no description set), rebase still works; but
   before pushing, describe it first with `jj describe -m "..."`.
 
