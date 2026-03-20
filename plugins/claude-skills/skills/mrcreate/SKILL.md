@@ -26,10 +26,14 @@ If the output is empty, **stop** and ask the user to describe the change:
 jj log -r @ --no-graph -T 'bookmarks'
 ```
 
-If no bookmark is shown, ask the user for a bookmark name, then:
+If no bookmark is shown, derive a name from the change description's first line:
+- Lowercase, replace spaces/special chars with hyphens, strip leading `feat:`/`fix:`/`chore:` prefixes, truncate to ~50 chars.
+- Example: `"feat: add grafana dashboard"` → `add-grafana-dashboard`
+
+Then create it automatically (no need to ask the user — it will be deleted after merge):
 
 ```bash
-jj bookmark create <name> -r @
+jj bookmark create <derived-name> -r @
 ```
 
 ## Step 3 — Sync with remote before pushing
@@ -84,7 +88,9 @@ GIT_ROOT=$(cat .jj/repo)
 GIT_ROOT=$(jj root)
 ```
 
-Check: `[ -f .jj/repo ] && GIT_ROOT=$(cat .jj/repo) || GIT_ROOT=$(jj root)`
+Check: `[ -f .jj/repo ] && GIT_ROOT=$(dirname $(cat .jj/repo)) || GIT_ROOT=$(jj root)`
+
+Note: `.jj/repo` in a linked workspace contains a path like `/path/to/repo/.jj/repo` — use `dirname` to get the actual git root, not the `.jj/repo` subdirectory itself.
 
 ## Step 6 — Check for an existing MR
 
