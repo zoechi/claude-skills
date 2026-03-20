@@ -41,13 +41,13 @@ GIT_DIR="$GIT_ROOT/.git" glab mr merge <id> --squash=false --yes
 
 ```bash
 jj git fetch
-jj bookmark set develop -r 'remote_bookmarks(exact:"develop")' --allow-backwards
+jj bookmark set develop -r 'develop@origin' --allow-backwards
 ```
 
 ### 3b — Rebase feature branch onto updated develop
 
 ```bash
-jj rebase -b <feature-bookmark> -d 'remote_bookmarks(exact:"develop")'
+jj rebase -b <feature-bookmark> -d 'develop@origin'
 ```
 
 ### 3c — Resolve any conflicts
@@ -88,14 +88,14 @@ If still failing, report the error to the user and stop.
 
 ```bash
 jj git fetch
-jj bookmark set develop -r 'remote_bookmarks(exact:"develop")' --allow-backwards
+jj bookmark set develop -r 'develop@origin' --allow-backwards
 ```
 
 ### Rebase @ onto develop
 
 Rebase only the working-copy commit (not descendants):
 ```bash
-jj rebase -r @ -d 'remote_bookmarks(exact:"develop")'
+jj rebase -r @ -d 'develop@origin'
 ```
 
 ### Clean up leftover empty commits
