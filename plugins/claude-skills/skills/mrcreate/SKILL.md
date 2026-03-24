@@ -24,16 +24,27 @@ these will be included in the single MR branch. The **topmost commit (`@`) is th
 If the user has explicitly asked for separate MRs (e.g. "create MRs for each change"),
 create one bookmark per commit and one MR each — skip to Step 2 for each.
 
-## Step 2 — Verify the tip change has a description
+## Step 2 — Ensure the tip change has a description
 
 ```bash
 jj log -r @ --no-graph -T 'description'
 ```
 
-If the output is empty, **stop** and ask the user to describe the change:
+If the output is empty, infer a description from the diff:
 
-> "The current change has no description. Please describe it first with:
-> `jj describe -m \"your description here\"`"
+```bash
+jj diff --stat
+```
+
+Derive a short imperative summary from the changed file paths (e.g.
+`nix/shells/*.nix` + `flake.nix` → `"extract devShells into separate files"`).
+Then set it automatically:
+
+```bash
+jj describe -m "<derived description>"
+```
+
+Do **not** stop or ask the user — proceed directly to Step 3.
 
 ## Step 3 — Find or create a bookmark on @
 
