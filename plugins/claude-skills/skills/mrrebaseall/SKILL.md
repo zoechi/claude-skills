@@ -26,24 +26,35 @@ Output format: `<name>: <change-id> <commit-id> <description>`
 
 Note each workspace name and its current change ID.
 
-## Step 3 — Rebase default workspace
+## Step 3 — Derive workspace root paths
 
 ```bash
-jj rebase -r 'default@' -d 'develop@origin'
+WS_DIR=$(dirname "$(jj root)")          # parent of current workspace, e.g. /home/zoechi/source/workspaces
+MAIN_REPO=$(cat .jj/repo | xargs -I{} dirname {} | xargs dirname)  # default workspace root
 ```
 
-If `default@` is already a descendant of `develop@origin`, this is a no-op.
+- Non-default workspaces live at `$WS_DIR/<name>` (siblings of the current workspace).
+- The `default` workspace is at `$MAIN_REPO`.
 
-## Step 4 — Rebase all other workspaces
+## Step 4 — Rebase each workspace from within its directory
 
-For each non-default workspace listed in Step 2:
+For the default workspace:
 
 ```bash
-jj rebase -r '<workspace-name>@' -d 'develop@origin'
+(cd "$MAIN_REPO" && jj rebase -r @ -d 'develop@origin')
 ```
 
-Replace `<workspace-name>` with the actual name (e.g. `nix-config_claude`,
-`nix-config_vault`).
+For each non-default workspace (replace `<name>` with actual workspace name):
+
+```bash
+(cd "$WS_DIR/<name>" && jj rebase -r @ -d 'develop@origin')
+```
+
+For the **current** workspace (the one you are already in), run directly:
+
+```bash
+jj rebase -r @ -d 'develop@origin'
+```
 
 Workspaces already up-to-date produce no output — that is expected.
 
@@ -65,6 +76,16 @@ Confirm each workspace's change is now a child of `develop@origin`.
 - You cannot rebase the *current* workspace's `@` with `-r '<name>@'` syntax from within
   that workspace; use plain `jj rebase -r @ -d 'develop@origin'` when targeting the active
   workspace.
+- Rebase each workspace from within its directory (`cd <path> && jj rebase -r @ -d ...`)
+  rather than externally (`jj rebase -r '<name>@'`). External rebase rewrites the commit
+  in the object store but does **not** update the working copy on disk; the workspace later
+  detects staleness and runs a reconcile op. If an active session is concurrently
+  snapshotting (e.g. another Claude Code window), this creates a divergent op chain — the
+  reconcile picks the rebase branch as winner and drops the live snapshot, orphaning
+  uncommitted changes. Internal rebase is one atomic op: commit rewrite + working copy
+  update together, no reconcile, no race window.
+  Path derivation: non-default workspaces at `$(dirname "$(jj root)")/<name>`, default at
+  `$(cat .jj/repo | xargs -I{} dirname {} | xargs dirname)`.
 - If a workspace has an undescribed commit (no description set), rebase still works; but
   before pushing, describe it first with `jj describe -m "..."`.
 
