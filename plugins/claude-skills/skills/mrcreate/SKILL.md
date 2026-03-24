@@ -1,15 +1,30 @@
 ---
 name: mrcreate
-description: "Create a GitLab MR for the current jj change targeting develop. Use when the user asks to create an MR, open a merge request, or push a feature branch."
+description: "Create a single GitLab MR for all local jj changes since the last remote tracking bookmark ancestor, targeting develop. Use when the user asks to create an MR, open a merge request, or push a feature branch."
 disable-model-invocation: true
 allowed-tools: Bash(jj *), Bash(glab *), Edit
 ---
 
 # Create GitLab MR for Current jj Change
 
-Creates and pushes the current change as a GitLab MR targeting `develop`.
+Creates and pushes **all local changes since the last remote tracking bookmark ancestor**
+as a **single MR** targeting `develop`, unless the user explicitly asks for separate MRs.
 
-## Step 1 — Verify current change has a description
+## Step 1 — Identify the range of changes to include
+
+Find the topmost local change (`@`) and the nearest remote tracking ancestor:
+
+```bash
+jj log -r 'develop@origin::@' --no-graph -T 'change_id.short() ++ " " ++ description.first_line() ++ "\n"'
+```
+
+This lists all commits from `develop@origin` (exclusive) up to `@` (inclusive). All of
+these will be included in the single MR branch. The **topmost commit (`@`) is the MR tip**.
+
+If the user has explicitly asked for separate MRs (e.g. "create MRs for each change"),
+create one bookmark per commit and one MR each — skip to Step 2 for each.
+
+## Step 2 — Verify the tip change has a description
 
 ```bash
 jj log -r @ --no-graph -T 'description'
@@ -20,13 +35,13 @@ If the output is empty, **stop** and ask the user to describe the change:
 > "The current change has no description. Please describe it first with:
 > `jj describe -m \"your description here\"`"
 
-## Step 2 — Find or create a bookmark on @
+## Step 3 — Find or create a bookmark on @
 
 ```bash
 jj log -r @ --no-graph -T 'bookmarks'
 ```
 
-If no bookmark is shown, derive a name from the change description's first line:
+If no bookmark is shown, derive a name from the tip change description's first line:
 - Lowercase, replace spaces/special chars with hyphens, strip leading `feat:`/`fix:`/`chore:` prefixes, truncate to ~50 chars.
 - Example: `"feat: add grafana dashboard"` → `add-grafana-dashboard`
 
@@ -36,7 +51,7 @@ Then create it automatically (no need to ask the user — it will be deleted aft
 jj bookmark create <derived-name> -r @
 ```
 
-## Step 3 — Sync with remote before pushing
+## Step 4 — Sync with remote before pushing
 
 Fetch remote state and rebase `@` onto the latest develop **before** pushing. This
 prevents `jj git push` from doing an implicit fetch+rebase during the push, which can
@@ -49,7 +64,7 @@ jj rebase -r @ -d develop@origin
 
 If `@` is already up to date the rebase is a no-op.
 
-## Step 4 — Push the bookmark
+## Step 5 — Push the bookmark
 
 ```bash
 jj git push --bookmark <name>
@@ -76,7 +91,7 @@ jj bookmark set <name> -r @
 jj git push --bookmark <name> --force-with-lease
 ```
 
-## Step 5 — Find the git store root
+## Step 6 — Find the git store root
 
 jj workspaces can be linked worktrees where `.jj/repo` is a pointer file, not a
 directory. `glab` needs real git context:
@@ -92,7 +107,7 @@ Check: `[ -f .jj/repo ] && GIT_ROOT=$(dirname $(cat .jj/repo)) || GIT_ROOT=$(jj 
 
 Note: `.jj/repo` in a linked workspace contains a path like `/path/to/repo/.jj/repo` — use `dirname` to get the actual git root, not the `.jj/repo` subdirectory itself.
 
-## Step 6 — Check for an existing MR
+## Step 7 — Check for an existing MR
 
 ```bash
 GIT_DIR="$GIT_ROOT/.git" glab mr list --source-branch <name>
@@ -100,7 +115,7 @@ GIT_DIR="$GIT_ROOT/.git" glab mr list --source-branch <name>
 
 If an MR already exists, print the URL and stop — no duplicate needed.
 
-## Step 7 — Create the MR
+## Step 8 — Create the MR
 
 Derive a title from the change description if not provided:
 
