@@ -81,10 +81,11 @@ If `@` is already up to date the rebase is a no-op.
 jj git push --bookmark <name>
 ```
 
-If the push fails because the remote has diverged (ahead/behind), push with force:
+If the push fails because the remote has diverged (ahead/behind), push with force.
+Note: `jj git push` does **not** support `--force` or `--force-with-lease`; use `--allow-new` instead:
 
 ```bash
-jj git push --bookmark <name> --force-with-lease
+jj git push --bookmark <name> --allow-new
 ```
 
 After pushing, verify that the bookmark and `@` still point to the same commit (a
@@ -95,11 +96,11 @@ jj log -r "<name>" -r @ --no-graph -T 'change_id ++ " " ++ commit_id ++ "\n"'
 # Both lines should have the same change_id and commit_id
 ```
 
-If they differ, force-push the updated `@` to the bookmark:
+If they differ, update the bookmark and push again:
 
 ```bash
 jj bookmark set <name> -r @
-jj git push --bookmark <name> --force-with-lease
+jj git push --bookmark <name> --allow-new
 ```
 
 ## Step 6 — Find the git store root
@@ -148,6 +149,9 @@ Print the MR URL to the user.
 - `--delete-source-branch` does not exist in all glab versions; use `-d` or
   `--remove-source-branch`.
 - If the push fails with "no bookmark to push", ensure the bookmark was created in Step 2.
+- `jj git push` does not support `--force` or `--force-with-lease`; use `--allow-new` for force-style pushes.
+- After `jj git push`, jj may create a new empty working-copy commit on top. If the user asks to amend the commit description after pushing, use `jj describe -r <bookmark-name> -m "..."` (targeting the bookmark explicitly) rather than `jj describe` (which would describe the empty `@`). Then push again with `--allow-new`.
+- For linked workspaces, `cat .jj/repo` returns a path like `/path/to/repo/.jj/repo`. The git root is `/path/to/repo`, so use: `GIT_ROOT=$(dirname $(dirname $(cat .jj/repo)))`.
 
 ## Self-update
 
