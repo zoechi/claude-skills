@@ -88,6 +88,10 @@ Confirm each workspace's change is now a child of `develop@origin`.
   `$(cat .jj/repo | xargs -I{} dirname {} | xargs dirname)`.
 - If a workspace has an undescribed commit (no description set), rebase still works; but
   before pushing, describe it first with `jj describe -m "..."`.
+- Workspaces can be stale after another workspace was recently rebased (e.g. by `/mrmerge`
+  run just before). `jj rebase` fails with "The working copy is stale". Fix: run
+  `jj workspace update-stale` inside that workspace's directory before rebasing. Pattern:
+  `cd <path> && jj workspace update-stale && jj rebase -r @ -d 'develop@origin'`.
 
 ## Self-update
 
