@@ -64,13 +64,20 @@ jj bookmark create <derived-name> -r @
 
 ## Step 4 — Sync with remote before pushing
 
-Fetch remote state and rebase `@` onto the latest develop **before** pushing. This
-prevents `jj git push` from doing an implicit fetch+rebase during the push, which can
-leave files stranded in `@` instead of the pushed commit.
+Fetch remote state and rebase the full local stack onto the latest develop **before**
+pushing. This prevents `jj git push` from doing an implicit fetch+rebase during the
+push, which can leave files stranded in `@` instead of the pushed commit.
+
+Use `-s` (subtree rebase) starting from the **first local change** after
+`develop@origin`, not `-r @` (single-revision rebase). `-r @` replaces `@`'s parent
+with `develop@origin`, severing any intermediate stacked changes and turning a
+sequential stack into a parallel change.
 
 ```bash
 jj git fetch
-jj rebase -r @ -d develop@origin
+# Rebase the full local stack (from first local change) onto latest develop@origin
+FIRST_LOCAL=$(jj log -r 'develop@origin::@ ~ develop@origin' --no-graph -T 'change_id.short() ++ "\n"' | head -1)
+jj rebase -s "$FIRST_LOCAL" -d develop@origin
 ```
 
 If `@` is already up to date the rebase is a no-op.
