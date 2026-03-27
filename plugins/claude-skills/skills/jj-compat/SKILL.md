@@ -264,8 +264,11 @@ dir lives in the colocated repo root, not the workspace directory. Resolve it dy
 
 ```bash
 # Resolve the colocated git root (works in both regular jj repos and workspaces)
+# NOTE: In a workspace, .jj/repo is a FILE with a path relative to the .jj/
+# directory itself (not the workspace root). It points to the root repo's
+# .jj/repo/ directory, so cd up two more levels to reach the actual repo root.
 if [ -f .jj/repo ]; then
-  GIT_ROOT=$(cd "$(cat .jj/repo)" && jj root)
+  GIT_ROOT=$(cd .jj && cd "$(cat repo)" && cd ../.. && jj root)
 else
   GIT_ROOT=$(jj root)
 fi

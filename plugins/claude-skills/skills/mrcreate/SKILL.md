@@ -2,7 +2,7 @@
 name: mrcreate
 description: "Create a single GitLab MR for all local jj changes since the last remote tracking bookmark ancestor, targeting develop. Use when the user asks to create an MR, open a merge request, or push a feature branch."
 disable-model-invocation: true
-allowed-tools: Bash(jj *), Bash(glab *), Edit
+allowed-tools: Bash(jj *), Bash(glab *), Bash(cat *), Bash(echo *), Edit
 ---
 
 # Create GitLab MR for Current jj Change
@@ -116,15 +116,10 @@ jj workspaces can be linked worktrees where `.jj/repo` is a pointer file, not a
 directory. `glab` needs real git context:
 
 ```bash
-# If .jj/repo is a plain file (linked workspace):
-GIT_ROOT=$(cat .jj/repo)
-# If .jj/repo is a directory (default workspace):
-GIT_ROOT=$(jj root)
+[ -f .jj/repo ] && GIT_ROOT=$(dirname $(dirname $(cat .jj/repo))) || GIT_ROOT=$(jj root)
 ```
 
-Check: `[ -f .jj/repo ] && GIT_ROOT=$(dirname $(cat .jj/repo)) || GIT_ROOT=$(jj root)`
-
-Note: `.jj/repo` in a linked workspace contains a path like `/path/to/repo/.jj/repo` — use `dirname` to get the actual git root, not the `.jj/repo` subdirectory itself.
+Note: `.jj/repo` in a linked workspace contains a path like `/path/to/repo/.jj/repo` — two `dirname` calls are needed to reach the actual repo root (first strips `repo`, second strips `.jj`).
 
 ## Step 7 — Check for an existing MR
 
