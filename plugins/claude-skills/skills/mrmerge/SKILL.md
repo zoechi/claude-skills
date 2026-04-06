@@ -2,7 +2,7 @@
 name: mrmerge
 description: "Merge an open GitLab MR (by ID or current branch), resolve conflicts if needed, then rebase @ onto remote develop. Use when the user asks to merge an MR or land a change."
 disable-model-invocation: true
-allowed-tools: Bash(jj *), Bash(glab *), Bash(sleep *), Bash(rm *), Edit
+allowed-tools: Bash(jj *), Bash(glab *), Bash(sleep *), Bash(rm *), Bash(cat *), Bash(echo *), Edit
 ---
 
 # Merge GitLab MR and Rebase @ onto Develop
@@ -23,8 +23,10 @@ GIT_DIR="$GIT_ROOT/.git" glab mr list --source-branch <current-bookmark>
 
 Find git store root (needed for all glab calls):
 ```bash
-[ -f .jj/repo ] && GIT_ROOT=$(cat .jj/repo) || GIT_ROOT=$(jj root)
+[ -f .jj/repo ] && GIT_ROOT=$(dirname $(dirname $(cat .jj/repo))) || GIT_ROOT=$(jj root)
 ```
+
+Note: in a linked workspace `.jj/repo` contains a path like `/path/to/repo/.jj/repo` — two `dirname` calls are needed to reach the actual repo root (first strips `repo`, second strips `.jj`).
 
 ## Step 2 — Attempt merge
 
@@ -132,3 +134,4 @@ bullet to the relevant Notes section of the **source** file using `Edit` before 
 
 Do **not** edit the installed copy under `~/.claude/`. Keep additions factual: what
 failed, what fixed it. Do not restructure existing content.
+- `glab mr merge` can return 405 even when the API reports `detailed_merge_status: mergeable`. Workaround: use `glab api --method PUT "projects/<namespace>/merge_requests/<id>/merge" --field "should_remove_source_branch=false"` to merge directly via the API.
