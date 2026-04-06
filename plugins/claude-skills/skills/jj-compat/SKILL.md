@@ -205,6 +205,38 @@ remote branch still exists and fall back to a local bookmark (e.g. `master`) if 
 
 jj allows committing conflicts — resolve them later by editing files directly to remove conflict markers. Do not use `jj resolve` (interactive, will hang in agent environments).
 
+### Rebase Conflict Cascade
+
+**Problem**: When `jj rebase -r @ -d TARGET` produces file conflicts, jj stores them *in the target commit* (not in the rebased commit). Every other descendant of that target — including unrelated branches like `develop` — inherits the unresolved conflicts. This can break other workspaces.
+
+**Detection**: After any rebase, check for cascade:
+
+```bash
+jj log -r 'develop::' --no-graph | grep conflict
+```
+
+If commits you didn't touch show `(conflict)`, the rebase contaminated shared history.
+
+**Recovery**: Use `jj op restore` to revert to the pre-rebase operation:
+
+```bash
+jj op log           # find the operation just before the rebase
+jj op restore OP_ID # restore repo to that state
+```
+
+This cleanly undoes the conflict markers from the target commit and all its descendants.
+`jj undo` + `jj redo` will NOT fix this — redo re-applies the same rebase and re-introduces the cascade.
+
+**Prevention**:
+- Check for file overlap before rebasing a long-running branch:
+  ```bash
+  jj diff -r @ --summary                      # files your branch touches
+  jj log -r 'OLD_BASE..develop@git' --summary  # what develop changed since your base
+  ```
+- If the same files appear in both, genuine conflicts exist. Rebase only when you have time to resolve them immediately.
+- Rebase onto the local develop tip (`develop`) instead of `develop@git` when possible — the local tip has no further local descendants, limiting cascade damage.
+- After rebasing with conflicts, resolve them in `@` before doing anything else (especially before other workspaces run any jj command).
+
 ## Restoring Files from op log
 
 When a file was lost without going through jj commands:
