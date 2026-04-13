@@ -154,6 +154,7 @@ Print the MR URL to the user.
 - `jj git push` does not support `--force` or `--force-with-lease`; use `--allow-new` for force-style pushes.
 - After `jj git push`, jj may create a new empty working-copy commit on top. If the user asks to amend the commit description after pushing, use `jj describe -r <bookmark-name> -m "..."` (targeting the bookmark explicitly) rather than `jj describe` (which would describe the empty `@`). Then push again with `--allow-new`.
 - For linked workspaces, `cat .jj/repo` returns a path like `/path/to/repo/.jj/repo`. The git root is `/path/to/repo`, so use: `GIT_ROOT=$(dirname $(dirname $(cat .jj/repo)))`.
+- If `@` stacks on a change that is an open MR (not yet in `develop@origin`), rebasing `@` onto `develop@origin` will conflict because the base is missing. Squash the fix into the parent instead: `jj squash -u`, then force-push the parent bookmark with `--allow-new`. No new MR is needed — the existing MR is updated.
 
 ## Self-update
 
