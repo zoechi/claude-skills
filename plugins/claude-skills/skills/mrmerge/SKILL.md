@@ -23,10 +23,10 @@ GIT_DIR="$GIT_ROOT/.git" glab mr list --source-branch <current-bookmark>
 
 Find git store root (needed for all glab calls):
 ```bash
-[ -f .jj/repo ] && GIT_ROOT=$(dirname $(dirname $(cat .jj/repo))) || GIT_ROOT=$(jj root)
+[ -f .jj/repo ] && GIT_ROOT=$(cd .jj && cd "$(cat repo)" && cd ../.. && pwd) || GIT_ROOT=$(jj root)
 ```
 
-Note: in a linked workspace `.jj/repo` contains a path like `/path/to/repo/.jj/repo` — two `dirname` calls are needed to reach the actual repo root (first strips `repo`, second strips `.jj`).
+Note: `.jj/repo` contains a path **relative to the `.jj/` directory** (e.g. `../../../nix-config/.jj/repo`). Using `dirname`/`dirname` on this relative path yields another relative path, breaking `GIT_DIR=`. The `cd` approach resolves it to an absolute path correctly.
 
 ## Step 2 — Attempt merge
 
@@ -104,7 +104,7 @@ jj rebase -r @ -d 'develop@origin'
 
 Empty commits from conflict resolution can be left behind. Abandon them:
 ```bash
-jj log -r 'empty() & mutable() & ancestors(@, 5)' --no-graph -T 'change_id ++ "\n"'
+jj log -r 'empty() & mutable() & descendants(develop@origin) & ancestors(@, 5)' --no-graph -T 'change_id ++ "\n"'
 # For each ID shown:
 jj abandon <change-id>
 ```
@@ -135,3 +135,4 @@ bullet to the relevant Notes section of the **source** file using `Edit` before 
 Do **not** edit the installed copy under `~/.claude/`. Keep additions factual: what
 failed, what fixed it. Do not restructure existing content.
 - `glab mr merge` can return 405 even when the API reports `detailed_merge_status: mergeable`. Workaround: use `glab api --method PUT "projects/<namespace>/merge_requests/<id>/merge" --field "should_remove_source_branch=false"` to merge directly via the API.
+- Never abandon empty commits that are ancestors of `develop@origin` — this deletes the `develop` bookmark and leaves `@` with multiple parents. The clean-up query now uses `descendants(develop@origin)` to exclude them. If the bookmark is accidentally deleted, restore with `jj bookmark set develop -r 'develop@origin'` then `jj rebase -r @ -d 'develop@origin'`.

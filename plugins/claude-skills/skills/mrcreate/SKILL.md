@@ -116,10 +116,10 @@ jj workspaces can be linked worktrees where `.jj/repo` is a pointer file, not a
 directory. `glab` needs real git context:
 
 ```bash
-[ -f .jj/repo ] && GIT_ROOT=$(dirname $(dirname $(cat .jj/repo))) || GIT_ROOT=$(jj root)
+[ -f .jj/repo ] && GIT_ROOT=$(cd .jj && cd "$(cat repo)" && cd ../.. && pwd) || GIT_ROOT=$(jj root)
 ```
 
-Note: `.jj/repo` in a linked workspace contains a path like `/path/to/repo/.jj/repo` — two `dirname` calls are needed to reach the actual repo root (first strips `repo`, second strips `.jj`).
+Note: `.jj/repo` contains a path **relative to the `.jj/` directory** (e.g. `../../../nix-config/.jj/repo`). Using `dirname`/`dirname` on this relative path yields another relative path, which silently breaks `GIT_DIR=`. The `cd` approach resolves it to an absolute path correctly.
 
 ## Step 7 — Check for an existing MR
 
@@ -153,7 +153,7 @@ Print the MR URL to the user.
 - If the push fails with "no bookmark to push", ensure the bookmark was created in Step 2.
 - `jj git push` does not support `--force` or `--force-with-lease`; use `--allow-new` for force-style pushes.
 - After `jj git push`, jj may create a new empty working-copy commit on top. If the user asks to amend the commit description after pushing, use `jj describe -r <bookmark-name> -m "..."` (targeting the bookmark explicitly) rather than `jj describe` (which would describe the empty `@`). Then push again with `--allow-new`.
-- For linked workspaces, `cat .jj/repo` returns a path like `/path/to/repo/.jj/repo`. The git root is `/path/to/repo`, so use: `GIT_ROOT=$(dirname $(dirname $(cat .jj/repo)))`.
+- For linked workspaces, `.jj/repo` contains a path relative to `.jj/`, not necessarily absolute. Using `dirname`/`dirname` on a relative path gives a relative `GIT_ROOT`, breaking `GIT_DIR=`. Always resolve with: `GIT_ROOT=$(cd .jj && cd "$(cat repo)" && cd ../.. && pwd)`.
 - If `@` stacks on a change that is an open MR (not yet in `develop@origin`), rebasing `@` onto `develop@origin` will conflict because the base is missing. Squash the fix into the parent instead: `jj squash -u`, then force-push the parent bookmark with `--allow-new`. No new MR is needed — the existing MR is updated.
 - **Amending content of an already-pushed feature commit**: After `jj git push`, a `UserPromptSubmit` hook (ensure-jj-change.sh) may automatically run `jj new` to create an empty `@` on top of the pushed commit, preventing edits from landing on an already-remote change. If the user then asks to amend the **content** (not just the description) of the feature commit, use `jj squash --into <bookmark-name>` to move the working-copy edits **into** the feature commit before pushing again. Using only `jj describe -r <bookmark-name>` updates the description but leaves the content in `@` (the empty child), which will silently carry forward into the *next* MR as unintended changes.
 
