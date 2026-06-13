@@ -88,8 +88,23 @@ If still failing, report the error to the user and stop.
 
 ## Step 4 — Post-merge sync
 
+**MANDATORY**: always run `jj git fetch` here, even if Step 3 already fetched. Do not skip it.
+
 ```bash
 jj git fetch
+```
+
+After fetching, verify that `develop@origin` has advanced past the pre-merge commit by
+printing its current commit ID:
+
+```bash
+jj log -r 'develop@origin' --no-graph -T 'commit_id ++ "\n"'
+```
+
+If the output is the same commit ID as before the merge, the fetch did not pick up the
+merge commit — stop and report the error to the user. Do not proceed with the rebase.
+
+```bash
 jj bookmark set develop -r 'develop@origin' --allow-backwards
 ```
 
@@ -137,3 +152,4 @@ failed, what fixed it. Do not restructure existing content.
 - `glab mr merge` can return 405 even when the API reports `detailed_merge_status: mergeable`. Workaround: use `glab api --method PUT "projects/<namespace>/merge_requests/<id>/merge" --field "should_remove_source_branch=false"` to merge directly via the API.
 - Never abandon empty commits that are ancestors of `develop@origin` — this deletes the `develop` bookmark and leaves `@` with multiple parents. The clean-up query now uses `descendants(develop@origin)` to exclude them. If the bookmark is accidentally deleted, restore with `jj bookmark set develop -r 'develop@origin'` then `jj rebase -r @ -d 'develop@origin'`.
 - The GitLab merge commit itself (e.g. "Merge branch 'fix/...' into 'develop'") shows up as `develop*` (local-only, not yet in `develop@origin`) immediately after `jj git fetch`. The clean-up query correctly includes it via `descendants(develop@origin)`. Abandoning it will delete `develop` — always restore with `jj bookmark set develop -r 'develop@origin'` and rebase `@` after abandoning.
+- The `jj git fetch` in Step 4 has been observed to be silently skipped when the model determines it is redundant (e.g. after Step 3 already fetched). This leaves `develop@origin` stale and causes the subsequent rebase to land `@` on the old pre-merge develop. The verification step (checking `develop@origin` commit ID after fetch) exists to catch this — do not remove it.
