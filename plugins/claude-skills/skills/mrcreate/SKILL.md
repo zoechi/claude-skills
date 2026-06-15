@@ -1,7 +1,6 @@
 ---
 name: mrcreate
 description: "Create a single GitLab MR for all local jj changes since the last remote tracking bookmark ancestor, targeting develop. Use when the user asks to create an MR, open a merge request, or push a feature branch."
-disable-model-invocation: true
 allowed-tools: Bash(jj *), Bash(glab *), Bash(cat *), Bash(echo *), Edit
 ---
 
