@@ -28,6 +28,26 @@ Find git store root (needed for all glab calls):
 
 Note: `.jj/repo` contains a path **relative to the `.jj/` directory** (e.g. `../../../nix-config/.jj/repo`). Using `dirname`/`dirname` on this relative path yields another relative path, breaking `GIT_DIR=`. The `cd` approach resolves it to an absolute path correctly.
 
+### Filtering by approval status
+
+When the user says **"approved MRs"** or **"all approved"**, they mean MRs where a
+reviewer has clicked ✓ **Approve** in GitLab — **not** just MRs that are technically
+mergeable (no conflicts, branch-protection satisfied). These are different things.
+
+Before merging a batch of MRs, check the approval count for each:
+
+```bash
+GIT_DIR="$GIT_ROOT/.git" glab api "projects/<namespace>/merge_requests/<id>/approvals" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print(len(d.get('approved_by', [])))"
+```
+
+- Output `0` → no approvals; **skip** this MR and report it as skipped.
+- Output `≥1` → has approval(s); proceed to merge.
+
+Apply this filter to every MR in the batch when the user's phrasing includes
+"approved". Skip this check when the user lists explicit MR IDs — they are
+authorising the merge directly.
+
 ## Step 2 — Attempt merge
 
 ```bash
@@ -74,7 +94,7 @@ Repeat until `jj status` shows no conflicts.
 ### 3d — Force-push and wait
 
 ```bash
-jj git push --bookmark <feature-bookmark> --force-with-lease
+jj git push --bookmark <feature-bookmark> --allow-new
 sleep 8   # wait for GitLab to re-evaluate mergeability
 ```
 
