@@ -157,6 +157,8 @@ Print the MR URL to the user.
 - **Amending content of an already-pushed feature commit**: After `jj git push`, jj automatically creates a new empty `@` on top of the pushed commit (the pushed commit becomes immutable). If the user then asks to amend the **content** (not just the description) of the feature commit, use `jj squash --into <bookmark-name>` to move the working-copy edits **into** the feature commit before pushing again. Using only `jj describe -r <bookmark-name>` updates the description but leaves the content in `@` (the empty child), which will silently carry forward into the *next* MR as unintended changes. Note: if the project uses a `PreToolUse(Edit)` hook (ensure-jj-change.sh) rather than `UserPromptSubmit`, the hook does not fire here because `@` is already a new local commit above the pushed bookmark — only jj's built-in immutability auto-advance is at play.
 - **SSH broken pipe in Claude Code shell**: `jj git push` may fail silently (no output, no op-log entry) when the SSH connection to the remote is broken (e.g. "Broken pipe" on IPv6). The SSH agent may have keys loaded but the TCP connection to the remote host drops. To diagnose, run `jj git push --dry-run` — if it shows "Changes to push" but the real push produces nothing and no op-log entry appears, it is a network issue. Fix: ask the user to run the push from their own terminal (`! jj git push --bookmark <name>`), then proceed with MR creation via `glab`.
 
+- **`--allow-new` not recognized (jj 0.42.0, 0.43.0)**: `jj git push --bookmark <name> --allow-new` fails with `error: unexpected argument '--allow-new'`. Since jj 0.42.0 new bookmarks are pushed by default, so plain `jj git push --bookmark <name>` works for both new and diverged bookmarks — just drop the flag.
+
 ## Self-update
 
 If you encounter an edge case, failure, or workaround not documented above, append a
@@ -166,3 +168,4 @@ bullet to the relevant Notes section of the **source** file using `Edit` before 
 
 Do **not** edit the installed copy under `~/.claude/`. Keep additions factual: what
 failed, what fixed it. Do not restructure existing content.
+- **`--allow-new` removed in newer jj** (observed with jj 0.42.0): `jj git push --allow-new` fails with `unexpected argument '--allow-new'`. Newer jj pushes new bookmarks by default — just run `jj git push --bookmark <name>` without the flag; only fall back to `--allow-new` on older versions that reject pushing new bookmarks.
