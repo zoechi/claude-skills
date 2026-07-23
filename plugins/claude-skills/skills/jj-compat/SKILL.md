@@ -76,7 +76,7 @@ jj st
 | `git checkout -b NAME` | `jj bookmark create NAME` | |
 | `git checkout NAME` | `jj edit NAME` | |
 | `git push` | `jj git push` | |
-| `git fetch` / `pull` | `jj git fetch` | pull = fetch + rebase |
+| `git fetch` / `pull` | `jj git fetch` | fetch only moves the bookmark, NOT `@` — see [Getting Latest](#getting-latest-develop--main-fetch-does-not-move-) |
 | `git stash` | (not needed) | work auto-saved in `@` |
 | `git cherry-pick` | `jj duplicate --onto DEST` | |
 | `git revert` | `jj revert --onto DEST` | `--onto` required |
@@ -179,6 +179,32 @@ jj workspace forget NAME                 # remove workspace (careful with defaul
 ```
 
 Each workspace has its own `@` commit. `name@` refers to workspace `name`'s WC commit.
+
+## Getting Latest develop / main (fetch does not move `@`)
+
+`jj git fetch` only updates the bookmark (e.g. `develop`) to match the remote. It
+**never** moves any workspace's `@`. Each workspace's working-copy commit sits wherever
+it was left — possibly many commits behind — until something explicitly rebases it.
+Checking "does local `develop` match `develop@origin`" only tells you the fetch worked;
+it says nothing about whether the workspace you're sitting in is current.
+
+When asked to get/pull/sync the latest develop, do both steps:
+
+```bash
+jj git fetch                              # 1. update the bookmark from origin
+jj log -r '@ | trunk()' --limit 5         # 2. is @ actually a descendant of trunk()?
+```
+
+If `@` is not a descendant, move it:
+
+```bash
+jj rebase -r @ -d develop   # keeps any uncommitted local changes in @
+# or, if @ has no local WIP worth keeping:
+jj new develop
+```
+
+Do this per workspace — with multiple `jj workspace add` checkouts, fetching in one
+does not advance any other workspace's `@`.
 
 ## Automatic Working Copy Advance
 
